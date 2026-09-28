@@ -1,13 +1,23 @@
 #!/bin/sh
 set +e
 
-# Refresh jailbreak app/icon registration after installing the standalone app.
 if command -v uicache >/dev/null 2>&1; then
     uicache -a >/dev/null 2>&1
 elif [ -x /var/jb/usr/bin/uicache ]; then
     /var/jb/usr/bin/uicache -a >/dev/null 2>&1
 fi
 
-# Sileo-compatible finish action: present "Restart SpringBoard" after dpkg completes.
-echo "finish:restart"
+emit_finish_restart() {
+    if [ -n "${CYDIA:-}" ]; then
+        set -- $CYDIA
+        finish_fd="$1"
+        if [ -n "$finish_fd" ] && [ -e "/dev/fd/$finish_fd" ]; then
+            printf '%s\n' 'finish:restart' > "/dev/fd/$finish_fd" 2>/dev/null
+            return
+        fi
+    fi
+    printf '%s\n' 'finish:restart'
+}
+
+emit_finish_restart
 exit 0
