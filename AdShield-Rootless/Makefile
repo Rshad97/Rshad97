@@ -1,5 +1,5 @@
 ARCHS = arm64 arm64e
-TARGET = iphone:clang:16.5:15.0
+TARGET = iphone:clang:latest:15.0
 THEOS_PACKAGE_SCHEME = rootless
 INSTALL_TARGET_PROCESSES = SpringBoard
 
@@ -16,7 +16,7 @@ AdShield_FILES = \
 	Core/ASRuleEngine.m \
 	Core/ASLogger.m
 
-AdShield_CFLAGS = -fobjc-arc
+AdShield_CFLAGS = -fobjc-arc -Wall -Wextra
 AdShield_FRAMEWORKS = Foundation
 
 include $(THEOS_MAKE_PATH)/tweak.mk
