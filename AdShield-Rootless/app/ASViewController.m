@@ -4,7 +4,7 @@
 static NSString * const ASAdGuardURL = @"https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt";
 static NSString * const ASHaGeZiURL = @"https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/pro.mini.txt";
 static NSString * const ASStevenBlackURL = @"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
-static NSString * const ASFilterDirectory = @"/var/mobile/Library/Application Support/AdShield/Filters";
+static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Support/AdShield/Filters/Runtime";
 
 @interface ASViewController ()
 @property (nonatomic, strong) UISwitch *masterSwitch;
