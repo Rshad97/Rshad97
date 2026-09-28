@@ -9,8 +9,18 @@ const char * ASReloadNotification = "com.rshad.adshieldrootless/ReloadPrefs";
 @implementation ASPreferences
 
 + (NSDictionary *)allPreferences {
-    NSDictionary *prefs = [NSDictionary dictionaryWithContentsOfFile:ASPrefsPath];
-    return [prefs isKindOfClass:NSDictionary.class] ? prefs : @{};
+    NSDictionary *filePrefs = [NSDictionary dictionaryWithContentsOfFile:ASPrefsPath];
+    if ([filePrefs isKindOfClass:NSDictionary.class] && filePrefs.count > 0) {
+        return filePrefs;
+    }
+
+    CFPreferencesAppSynchronize((__bridge CFStringRef)ASPrefsDomain);
+    CFDictionaryRef copied = CFPreferencesCopyMultiple(NULL,
+                                                       (__bridge CFStringRef)ASPrefsDomain,
+                                                       kCFPreferencesCurrentUser,
+                                                       kCFPreferencesAnyHost);
+    NSDictionary *cfPrefs = CFBridgingRelease(copied);
+    return [cfPrefs isKindOfClass:NSDictionary.class] ? cfPrefs : @{};
 }
 
 + (BOOL)boolForKey:(NSString *)key defaultValue:(BOOL)defaultValue {
@@ -20,10 +30,12 @@ const char * ASReloadNotification = "com.rshad.adshieldrootless/ReloadPrefs";
 
 + (void)setBool:(BOOL)value forKey:(NSString *)key {
     NSMutableDictionary *prefs = [[self allPreferences] mutableCopy];
+    if (!prefs) prefs = [NSMutableDictionary dictionary];
     prefs[key] = @(value);
     [prefs writeToFile:ASPrefsPath atomically:YES];
+
     CFPreferencesSetAppValue((__bridge CFStringRef)key,
-                             (__bridge CFPropertyListRef)@(value),
+                             value ? kCFBooleanTrue : kCFBooleanFalse,
                              (__bridge CFStringRef)ASPrefsDomain);
     CFPreferencesAppSynchronize((__bridge CFStringRef)ASPrefsDomain);
     [self postReloadNotification];
