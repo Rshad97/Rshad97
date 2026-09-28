@@ -7,7 +7,7 @@
     <dict>
         <key>cell</key><string>PSGroupCell</string>
         <key>label</key><string>AdShield-Rootless v1.0.0</string>
-        <key>footerText</key><string>Prototype system-wide network filter for rootless jailbreaks. Third-party lists are downloaded only when you request an update in the AdShield app.</string>
+        <key>footerText</key><string>System-wide domain filtering prototype for rootless jailbreaks. Remote lists are downloaded only when you request an update in the AdShield app.</string>
     </dict>
     <dict>
         <key>cell</key><string>PSSwitchCell</string>
@@ -28,12 +28,21 @@
     <dict>
         <key>cell</key><string>PSGroupCell</string>
         <key>label</key><string>Filter Sources</string>
+        <key>footerText</key><string>AdGuard is the default source. HaGeZi Pro Mini and StevenBlack are optional; enabling several large lists increases memory use in each injected app.</string>
     </dict>
     <dict>
         <key>cell</key><string>PSSwitchCell</string>
         <key>label</key><string>AdGuard DNS Filter</string>
         <key>key</key><string>useAdGuard</string>
         <key>default</key><true/>
+        <key>get</key><string>readPreferenceValue:</string>
+        <key>set</key><string>setPreferenceValue:specifier:</string>
+    </dict>
+    <dict>
+        <key>cell</key><string>PSSwitchCell</string>
+        <key>label</key><string>HaGeZi Pro Mini</string>
+        <key>key</key><string>useHaGeZi</string>
+        <key>default</key><false/>
         <key>get</key><string>readPreferenceValue:</string>
         <key>set</key><string>setPreferenceValue:specifier:</string>
     </dict>
