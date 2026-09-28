@@ -8,29 +8,75 @@ on:
       - '.github/workflows/adshield-build.yml'
   workflow_dispatch:
 
+concurrency:
+  group: adshield-rootless-build
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-15
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Theos and patched SDK
+      - name: Install build tools
         run: |
-          brew install make ldid xz
+          brew install ldid dpkg xz
+
+      - name: Install Theos and patched iOS SDK
+        run: |
           git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
           mkdir -p "$HOME/theos/sdks"
-          curl -fL "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz" -o /tmp/iPhoneOS16.5.sdk.tar.xz
+          curl -fL --retry 3             "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz"             -o /tmp/iPhoneOS16.5.sdk.tar.xz
           tar -xJf /tmp/iPhoneOS16.5.sdk.tar.xz -C "$HOME/theos/sdks"
+          echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
+
+      - name: Validate source metadata
+        working-directory: AdShield-Rootless
+        run: |
+          set -euo pipefail
+          test "$(awk '/^Package:/{print $2}' control)" = "com.rshad.adshieldrootless"
+          test "$(awk '/^Version:/{print $2}' control)" = "1.0.0"
+          test "$(awk '/^Architecture:/{print $2}' control)" = "iphoneos-arm64"
+          plutil -lint app/Resources/Info.plist
+          plutil -lint preferences/Resources/Info.plist
+          plutil -lint preferences/Resources/Root.plist
+          test -x layout/DEBIAN/postinst
+          test -x layout/DEBIAN/postrm
+          python3 scripts/generate_assets.py
+          test -s app/Resources/Icon-60@2x.png
+          test -s layout/Library/PreferenceLoader/Preferences/AdShieldPrefs.png
 
       - name: Build rootless package
         working-directory: AdShield-Rootless
         run: |
-          export THEOS="$HOME/theos"
+          set -euo pipefail
           make clean package FINALPACKAGE=1
+
+      - name: Inspect package
+        working-directory: AdShield-Rootless
+        run: |
+          set -euo pipefail
+          DEB="$(ls -t packages/*.deb | head -n 1)"
+          echo "Inspecting $DEB"
+          dpkg-deb -I "$DEB"
+          dpkg-deb -c "$DEB" | tee /tmp/adshield-files.txt
+
+          grep -q 'Library/MobileSubstrate/DynamicLibraries/AdShield.dylib' /tmp/adshield-files.txt
+          grep -q 'Library/PreferenceBundles/AdShieldPrefs.bundle' /tmp/adshield-files.txt
+          grep -q 'Applications/AdShieldApp.app' /tmp/adshield-files.txt
+          grep -q 'Library/Application Support/AdShield/Filters/builtin.txt' /tmp/adshield-files.txt
+
+          rm -rf /tmp/adshield-control
+          mkdir -p /tmp/adshield-control
+          dpkg-deb -e "$DEB" /tmp/adshield-control
+          test -x /tmp/adshield-control/postinst
+          grep -q 'finish:restart' /tmp/adshield-control/postinst
 
       - name: Upload DEB
         uses: actions/upload-artifact@v4
         with:
           name: AdShield-Rootless-v1.0.0
           path: AdShield-Rootless/packages/*.deb
+          if-no-files-found: error
