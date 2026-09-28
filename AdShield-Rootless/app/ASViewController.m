@@ -72,7 +72,7 @@ static NSString * const ASFilterDirectory = @"/var/mobile/Library/Application Su
     self.updateButton.backgroundColor = UIColor.systemBlueColor;
     [self.updateButton setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
     self.updateButton.layer.cornerRadius = 12;
-    self.updateButton.contentEdgeInsets = UIEdgeInsetsMake(14, 16, 14, 16);
+    [self.updateButton.heightAnchor constraintEqualToConstant:52.0].active = YES;
     [self.updateButton addTarget:self action:@selector(updateFilters) forControlEvents:UIControlEventTouchUpInside];
     [stack addArrangedSubview:self.updateButton];
 
