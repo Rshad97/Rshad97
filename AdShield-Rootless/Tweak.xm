@@ -5,8 +5,13 @@
 #import <notify.h>
 
 static BOOL ASShouldActivateForCurrentProcess(void) {
-    NSString *bundleID = NSBundle.mainBundle.bundleIdentifier.lowercaseString;
+    NSBundle *bundle = NSBundle.mainBundle;
+    NSString *bundleID = bundle.bundleIdentifier.lowercaseString;
     if (!bundleID.length) return NO;
+
+    if ([bundle.bundlePath.pathExtension.lowercaseString isEqualToString:@"appex"]) {
+        return NO;
+    }
 
     NSArray<NSString *> *blockedPrefixes = @[
         @"com.apple.",
@@ -20,7 +25,10 @@ static BOOL ASShouldActivateForCurrentProcess(void) {
         if ([bundleID hasPrefix:prefix]) return NO;
     }
 
-    return [ASPreferences boolForKey:@"enabled" defaultValue:YES];
+    // Always install the lightweight hook in eligible third-party apps.
+    // The master switch is checked per request so toggling AdShield does not
+    // require the app to be relaunched.
+    return YES;
 }
 
 %hook NSURLSessionTask
