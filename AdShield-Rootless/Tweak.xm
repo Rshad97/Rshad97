@@ -60,6 +60,5 @@ static BOOL ASShouldActivateForCurrentProcess(void) {
             [[ASRuleEngine sharedEngine] reload];
         });
 
-        %init;
-    }
+        // Prime the rule engine in the background so the first network request\n        // never pays the cost of parsing large filter lists.\n        [[ASRuleEngine sharedEngine] reload];\n\n        %init;\n    }
 }
