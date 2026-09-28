@@ -15,10 +15,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Theos
+      - name: Install Theos and patched SDK
         run: |
           brew install make ldid xz
           git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
+          mkdir -p "$HOME/theos/sdks"
+          curl -fL "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS16.5.sdk.tar.xz" -o /tmp/iPhoneOS16.5.sdk.tar.xz
+          tar -xJf /tmp/iPhoneOS16.5.sdk.tar.xz -C "$HOME/theos/sdks"
 
       - name: Build rootless package
         working-directory: AdShield-Rootless
