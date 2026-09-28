@@ -43,7 +43,7 @@ static NSString * const ASStevenBlackURL = @"https://raw.githubusercontent.com/S
     [icon.heightAnchor constraintEqualToConstant:120].active = YES;
 
     UILabel *subtitle = [UILabel new];
-    subtitle.text = @"AdShield-Rootless v1.1.0";
+    subtitle.text = @"AdShield-Rootless v1.1.1";
     subtitle.font = [UIFont systemFontOfSize:20 weight:UIFontWeightSemibold];
     subtitle.textAlignment = NSTextAlignmentCenter;
 
@@ -72,7 +72,7 @@ static NSString * const ASStevenBlackURL = @"https://raw.githubusercontent.com/S
     self.xSwitch = [UISwitch new];
     self.xSwitch.on = [ASPreferences boolForKey:@"xPromoted" defaultValue:YES];
     [self.xSwitch addTarget:self action:@selector(xChanged:) forControlEvents:UIControlEventValueChanged];
-    [stack addArrangedSubview:[self rowWithTitle:@"X Promoted Posts" subtitle:@"Experimental • requires compatible app methods; reopen X after installation" control:self.xSwitch]];
+    [stack addArrangedSubview:[self rowWithTitle:@"X Promoted Posts" subtitle:@"Stable rows • may leave empty ad space; reopen X after upgrading" control:self.xSwitch]];
     UILabel *coverage = [UILabel new];
     coverage.text = @"Snapchat: partial ad-domain coverage only. Story, Spotlight and chat ads are not guaranteed blocked. Other apps: domain filtering where NSURLSession is used. No blanket blocking of social-media domains.";
     coverage.numberOfLines = 0;

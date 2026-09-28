@@ -14,6 +14,7 @@ AdShield_FILES = \
 	Tweak.xm \
 	XAdapter.xm \
 	Core/ASXSupport.m \
+	Core/ASXCellGuard.m \
 	Core/ASDomainRules.m \
 	Core/ASPreferences.m \
 	Core/ASRuleEngine.m \

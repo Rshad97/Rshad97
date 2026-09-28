@@ -1,12 +1,12 @@
-# AdShield-Rootless v1.1.0
+# AdShield-Rootless v1.1.1
 
-Rootless iOS 15+ tweak for Dopamine/ElleKit. This update improves filtering correctness and adds an **experimental X promoted-post adapter**. It does not promise complete Snapchat, YouTube or TikTok ad removal.
+Rootless iOS 15+ tweak for Dopamine/ElleKit. This update improves filtering correctness and adds an **experimental X promoted-post adapter**. Version 1.1.1 removes zero-height collapsing to address ad reappearance and overlapping rows. It does not promise complete Snapchat, YouTube or TikTok ad removal.
 
 ## Coverage
 
 | Target | Implemented | Limit |
 |---|---|---|
-| X / Twitter | App-scoped timeline cell and row-height adapter for `isPromoted` items | Requires matching runtime methods; skips unknown signatures. No on-device version is certified. |
+| X / Twitter | App-scoped lifecycle guard for cells bound to `isPromoted` items | Requires matching runtime methods; skips unknown signatures. No on-device version is certified. |
 | Snapchat | Dedicated ad domains in the seed and subscribed lists | Partial network coverage; stories, Spotlight and sponsored chat are not guaranteed. |
 | Games / other apps | AdGuard DNS, optional HaGeZi Pro Mini / StevenBlack | Only covered NSURLSession paths; custom networking, WebKit subprocesses and shared first-party ads may bypass it. |
 
@@ -21,12 +21,12 @@ The adapter checks actual installed classes and method signatures rather than as
 - Missing enabled lists download when AdShield opens or a source is enabled in the app.
 - Downloads validated with the same parser, replaced atomically, and retain previous files on failure. UI reports accepted and skipped rules.
 - Additional concrete NSURLSession task interception when the class owns a compatible `resume` method. No claim of covering all networking stacks.
-- X adapter validates method signatures, obtains Boolean results safely and restores reused cell visibility.
+- X adapter validates method signatures and binds the actual item supplied to the cell factory. It enforces hiding after late visibility requests and layout, clears state before reuse and handles reconfiguration without reuse. Native row heights remain unchanged; empty ad space can remain.
 - Block logging records hostnames, not full URLs or query tokens.
 
 ## Install / verify
 
-1. Upgrade `com.rshad.adshieldrootless` to 1.1.0 in Sileo and select Restart SpringBoard.
+1. Upgrade `com.rshad.adshieldrootless` to 1.1.1 in Sileo and select Restart SpringBoard.
 2. Open AdShield. Keep AdGuard DNS enabled; missing lists download automatically. For existing lists, tap Update Filter Lists.
 3. Close and reopen X and Snapchat. X Promoted Posts is enabled by default and has a separate switch in both the app and Settings.
 4. Optionally enable Log Blocked Requests in Settings. Check device console output:
@@ -42,8 +42,9 @@ The adapter checks actual installed classes and method signatures rather than as
 
 Theos + iOS SDK: `make clean package FINALPACKAGE=1`.
 On macOS: `sh scripts/test-core.sh`.
+With an installed iOS Simulator runtime: `bash scripts/test-x-ui.sh` (real UIKit cells, 300 reuse cycles, delayed unhide attempts, reconfiguration, protection toggles and native table geometry).
 With current upstream lists: `AS_TEST_UPSTREAM=1 sh scripts/test-core.sh`.
-CI runs the actual Objective-C parser and X compatibility helper, then builds arm64/arm64e and validates the package. These tests do not simulate logged-in X/Snapchat or prove live ad removal.
+CI runs the actual Objective-C parser and X compatibility helper, plus the production cell guard in iOS Simulator, then builds arm64/arm64e and validates the package. These tests do not simulate logged-in X/Snapchat or prove live ad removal.
 
 ## License
 

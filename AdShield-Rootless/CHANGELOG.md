@@ -1,3 +1,12 @@
+# 1.1.1
+
+- Remove zero-height ad-row override. Keep X's native layout measurements to prevent inconsistent row geometry; an empty ad slot may remain.
+- Bind the actual cell-factory item rather than looking it up through a potentially moved index path.
+- Enforce hiding through later setHidden requests and layout; track the app's requested visibility separately.
+- Clear bindings before prepareForReuse and when reconfigured as an organic/unknown item, including reconfiguration without reuse.
+- Refresh existing bound cells when master/X protection switches change; retain cells weakly.
+- Add an iOS Simulator harness exercising the production UIKit guard, a legacy one-shot reproduction, 300 reuse cycles, delayed callbacks and neighboring-row geometry. Keep the 48 native parser/X tests and live-list checks.
+
 # 1.1.0
 
 - Fix domain parser broadening and important/exception precedence; support hosts tabs, aliases, comments and IPv6 sink addresses.

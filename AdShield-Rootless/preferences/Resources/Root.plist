@@ -8,7 +8,7 @@
 			<key>cell</key>
 			<string>PSGroupCell</string>
 			<key>label</key>
-			<string>AdShield-Rootless v1.1.0</string>
+			<string>AdShield-Rootless v1.1.1</string>
 			<key>footerText</key>
 			<string>Domain protection with an experimental X adapter. Open AdShield to download missing enabled lists automatically. Snapchat coverage is limited to ad domains.</string>
 		</dict>

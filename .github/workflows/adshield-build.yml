@@ -24,6 +24,11 @@ jobs:
         working-directory: AdShield-Rootless
         run: AS_TEST_UPSTREAM=1 sh scripts/test-core.sh
 
+      - name: Test X cell lifecycle in iOS Simulator
+        timeout-minutes: 8
+        working-directory: AdShield-Rootless
+        run: bash scripts/test-x-ui.sh
+
       - name: Install build tools
         run: |
           brew install ldid dpkg xz
@@ -41,7 +46,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(awk '/^Package:/{print $2}' control)" = "com.rshad.adshieldrootless"
-          test "$(awk '/^Version:/{print $2}' control)" = "1.1.0"
+          test "$(awk '/^Version:/{print $2}' control)" = "1.1.1"
           test "$(awk '/^Architecture:/{print $2}' control)" = "iphoneos-arm64"
           plutil -lint app/Resources/Info.plist
           plutil -lint preferences/Resources/Info.plist
@@ -81,7 +86,7 @@ jobs:
       - name: Upload DEB
         uses: actions/upload-artifact@v4
         with:
-          name: AdShield-Rootless-v1.1.0
+          name: AdShield-Rootless-v1.1.1
           path: AdShield-Rootless/packages/*.deb
           if-no-files-found: error
 
