@@ -20,3 +20,10 @@
 ||tapjoy.com^
 ||adcolony.com^
 ||mopub.com^
+
+
+# Dedicated ad endpoints confirmed in AdGuard MobileFilter/sections/adservers.txt.
+# These do NOT claim to remove all Snapchat story, spotlight or chat ads.
+||adserver.shadow.snapads.com^
+||adsapi.snapchat.com^
+||ads-bidder-api.twitter.com^

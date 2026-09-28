@@ -12,14 +12,18 @@ TWEAK_NAME = AdShield
 
 AdShield_FILES = \
 	Tweak.xm \
+	XAdapter.xm \
+	Core/ASXSupport.m \
+	Core/ASDomainRules.m \
 	Core/ASPreferences.m \
 	Core/ASRuleEngine.m \
 	Core/ASLogger.m
 
 AdShield_CFLAGS = -fobjc-arc -Wall -Wextra
-AdShield_FRAMEWORKS = Foundation
+AdShield_FRAMEWORKS = Foundation UIKit
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 SUBPROJECTS += preferences app
 include $(THEOS_MAKE_PATH)/aggregate.mk
+

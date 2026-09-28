@@ -1,113 +1,50 @@
-# AdShield-Rootless v1.0.0
+# AdShield-Rootless v1.1.0
 
-AdShield-Rootless is a modular ad/tracker filtering prototype for rootless jailbreaks on iOS 15+, designed for Dopamine/ElleKit.
+Rootless iOS 15+ tweak for Dopamine/ElleKit. This update improves filtering correctness and adds an **experimental X promoted-post adapter**. It does not promise complete Snapchat, YouTube or TikTok ad removal.
 
-## v1.0.0 prototype
+## Coverage
 
-- Rootless Theos tweak with arm64 + arm64e slices.
-- Intercepts third-party app `NSURLSessionTask` requests.
-- Apple/system processes, package managers, app extensions and AdShield itself are excluded from injection.
-- Independent parser for a conservative DNS/domain subset:
-  - `||example.com^`
-  - `@@||example.com^`
-  - `0.0.0.0 example.com`
-  - `127.0.0.1 example.com`
-  - plain domains
-- Unsupported AdGuard modifiers are skipped rather than guessed.
-- Hard safety allowlist for critical Apple/iCloud domains.
-- Built-in seed list.
-- Optional runtime filter subscriptions:
-  - AdGuard DNS Filter (enabled by default)
-  - HaGeZi Multi PRO Mini (optional)
-  - StevenBlack unified hosts (optional)
-- Standalone AdShield app for protection controls and list updates.
-- PreferenceLoader pane in iOS Settings.
-- Darwin notification reload so rule changes propagate to already-running apps.
-- Downloaded lists live in the shared rootless support path:
-  `/var/jb/Library/Application Support/AdShield/Filters/Runtime`.
-- Sileo-compatible `finish:restart` action so installation/removal presents **Restart SpringBoard**.
+| Target | Implemented | Limit |
+|---|---|---|
+| X / Twitter | App-scoped timeline cell and row-height adapter for `isPromoted` items | Requires matching runtime methods; skips unknown signatures. No on-device version is certified. |
+| Snapchat | Dedicated ad domains in the seed and subscribed lists | Partial network coverage; stories, Spotlight and sponsored chat are not guaranteed. |
+| Games / other apps | AdGuard DNS, optional HaGeZi Pro Mini / StevenBlack | Only covered NSURLSession paths; custom networking, WebKit subprocesses and shared first-party ads may bypass it. |
 
-## Why these sources?
+The adapter checks actual installed classes and method signatures rather than assuming an App Store version is installed. Startup logs include the local app version. App Store listings cannot reveal the version on a particular phone.
 
-AdGuard DNS Filter is the default primary source because it is designed specifically for DNS-level ad blocking and already combines major AdGuard/mobile/tracking lists. HaGeZi Pro Mini is a size-optimized optional list intended for browser/mobile or limited-memory blockers. StevenBlack provides a mature hosts-format aggregate and is kept optional.
+## Changes
 
-AdShield does not vendor these lists into the source tree or DEB. The standalone app downloads enabled lists directly from their upstream endpoints.
+- Strict domain parser: rejects paths, wildcard rules, cosmetic rules and unsupported modifiers instead of widening their scope.
+- `$important` priority: important allow > important block > ordinary allow > ordinary block.
+- Hosts parsing supports tabs, aliases, comments and IPv6 sink addresses. Hosts records match exact names; domain rules also match subdomains.
+- Small seed loaded synchronously. Full subscriptions parsed off the request thread.
+- Missing enabled lists download when AdShield opens or a source is enabled in the app.
+- Downloads validated with the same parser, replaced atomically, and retain previous files on failure. UI reports accepted and skipped rules.
+- Additional concrete NSURLSession task interception when the class owns a compatible `resume` method. No claim of covering all networking stacks.
+- X adapter validates method signatures, obtains Boolean results safely and restores reused cell visibility.
+- Block logging records hostnames, not full URLs or query tokens.
 
-## Architecture
+## Install / verify
 
-```text
-Third-party app
-     │
-     ▼
-AdShield.dylib
-     │
-     ├── ASPreferences
-     ├── ASRuleEngine
-     │     ├── built-in seed rules
-     │     └── /var/jb/.../Filters/Runtime
-     │
-     └── NSURLSessionTask hook
-             │
-             ├── allow rule → pass through
-             └── block rule → cancel request
+1. Upgrade `com.rshad.adshieldrootless` to 1.1.0 in Sileo and select Restart SpringBoard.
+2. Open AdShield. Keep AdGuard DNS enabled; missing lists download automatically. For existing lists, tap Update Filter Lists.
+3. Close and reopen X and Snapchat. X Promoted Posts is enabled by default and has a separate switch in both the app and Settings.
+4. Optionally enable Log Blocked Requests in Settings. Check device console output:
+   - `NETWORK_HOOK_ACTIVE bundle=... appVersion=...`: network interception installed.
+   - `FILTERS_LOADED accepted=N skipped=N`: parsed runtime snapshot.
+   - `FILTER_UNAVAILABLE filename code=N`: missing/unreadable subscription.
+   - `X_ADAPTER ACTIVE`: supported controller signatures found, **not** proof an ad was removed.
+   - `X_ADAPTER UNSUPPORTED_SIGNATURE`: adapter skipped; domain filtering remains.
+   - `X_PROMOTED_HIDDEN`: an actual promoted timeline item was hidden (logging enabled).
+5. Verify normal posts, scrolling/reused cells, video, messages and app launch on the device. Disable X Promoted Posts if its adapter causes a regression.
 
-Settings.app ── PreferenceLoader ── AdShieldPrefs.bundle
+## Build and tests
 
-AdShield.app
-     ├── master/network switches
-     ├── filter-source switches
-     └── safe upstream list updater
-```
+Theos + iOS SDK: `make clean package FINALPACKAGE=1`.
+On macOS: `sh scripts/test-core.sh`.
+With current upstream lists: `AS_TEST_UPSTREAM=1 sh scripts/test-core.sh`.
+CI runs the actual Objective-C parser and X compatibility helper, then builds arm64/arm64e and validates the package. These tests do not simulate logged-in X/Snapchat or prove live ad removal.
 
-## Important v1.0.0 limitation
+## License
 
-This first version is a domain/network layer, not a complete YouTube/TikTok/X-specific blocker.
-
-YouTube, TikTok and X can serve promotions and playback ads through first-party APIs/CDNs. Blocking those entire domains would also break legitimate video/timeline traffic. Dedicated app adapters are therefore planned as separate modules after the generic engine is stable.
-
-Planned adapters:
-
-- YouTube feed / Shorts / playback ad-state adapter
-- TikTok sponsored feed-object adapter
-- X promoted timeline/card adapter
-- Google Mobile Ads SDK
-- AppLovin
-- Unity Ads
-- ironSource / LevelPlay
-- Mintegral
-
-## Build
-
-Requires Theos and a usable iOS SDK.
-
-```sh
-export THEOS=~/theos
-make clean package FINALPACKAGE=1
-```
-
-Package:
-- Identifier: `com.rshad.adshieldrootless`
-- Version: `1.0.0`
-- Architecture: `iphoneos-arm64`
-- Minimum iOS: 15.0
-- Injection: ElleKit
-- Settings: PreferenceLoader
-
-GitHub Actions builds the DEB and validates package metadata, Settings resources, the standalone app, bundled seed rules and the `finish:restart` maintainer action.
-
-## After installation
-
-1. In Sileo, use **Restart SpringBoard** when prompted.
-2. Open **Settings → AdShield-Rootless** or the **AdShield** app.
-3. Leave **AdGuard DNS Filter** enabled.
-4. Optionally enable **HaGeZi Pro Mini** or **StevenBlack Hosts**.
-5. Tap **Update Filter Lists**.
-6. Test normal browsing/apps first before enabling extra sources.
-
-## Project icon
-
-The visual identity is a black/deep-navy shield with electric-blue protection/ad-blocking elements. The build includes generated iPhone and PreferenceLoader icon sizes from the project asset generator.
-
-## Third-party licenses
-
-See `THIRD_PARTY.md`. AdShield's own source is MIT licensed. Third-party lists remain governed by their upstream licenses and are downloaded from upstream rather than redistributed inside this package.
+Combined tweak and XAdapter: GPL-3.0-or-later; original MIT components retain LICENSE. See COPYING and THIRD_PARTY.md. Complete source and build instructions are published here.

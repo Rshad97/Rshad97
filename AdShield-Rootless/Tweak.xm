@@ -3,6 +3,11 @@
 #import "Core/ASRuleEngine.h"
 #import "Core/ASLogger.h"
 #import <notify.h>
+#import <objc/runtime.h>
+#include <stdlib.h>
+#include <string.h>
+@interface ASLocalTask : NSURLSessionTask
+@end
 
 static BOOL ASShouldActivateForCurrentProcess(void) {
     NSBundle *bundle = NSBundle.mainBundle;
@@ -31,22 +36,47 @@ static BOOL ASShouldActivateForCurrentProcess(void) {
     return YES;
 }
 
-%hook NSURLSessionTask
-
-- (void)resume {
-    NSURLRequest *request = self.currentRequest ?: self.originalRequest;
-    NSURL *url = request.URL;
-
+static void ASFilterTask(NSURLSessionTask *task) {
+    if (task.state == NSURLSessionTaskStateCanceling || task.state == NSURLSessionTaskStateCompleted) return;
+    NSURL *url = (task.currentRequest ?: task.originalRequest).URL;
     if (url && [[ASRuleEngine sharedEngine] shouldBlockURL:url]) {
         [ASLogger logBlockedURL:url bundleIdentifier:NSBundle.mainBundle.bundleIdentifier];
-        [self cancel];
-        return;
+        [task cancel];
     }
-
-    %orig;
 }
 
+%hook NSURLSessionTask
+- (void)resume {
+    ASFilterTask(self);
+    // Resume cancelled tasks as well so the ordinary cancellation callback runs.
+    %orig;
+}
 %end
+
+%group ASConcreteTask
+%hook ASLocalTask
+- (void)resume {
+    ASFilterTask((NSURLSessionTask *)self);
+    %orig;
+}
+%end
+%end
+
+static BOOL ASOwnsResume(Class cls) {
+    unsigned int count = 0;
+    Method *methods = class_copyMethodList(cls, &count);
+    BOOL found = NO;
+    for (unsigned int i = 0; i < count; i++) {
+        if (method_getName(methods[i]) == @selector(resume) && method_getNumberOfArguments(methods[i]) == 2) {
+            char *returnType = method_copyReturnType(methods[i]);
+            found = returnType && strcmp(returnType, "v") == 0;
+            free(returnType);
+            break;
+        }
+    }
+    free(methods);
+    return found;
+}
 
 %ctor {
     if (!ASShouldActivateForCurrentProcess()) {
@@ -63,4 +93,10 @@ static BOOL ASShouldActivateForCurrentProcess(void) {
 
     [[ASRuleEngine sharedEngine] reload];
     %init;
+    Class concrete = NSClassFromString(@"__NSCFLocalSessionTask");
+    if (concrete && [concrete isSubclassOfClass:NSURLSessionTask.class] && ASOwnsResume(concrete)) {
+        %init(ASConcreteTask, ASLocalTask=concrete);
+    }
+    NSLog(@"[AdShield] NETWORK_HOOK_ACTIVE bundle=%@ appVersion=%@", NSBundle.mainBundle.bundleIdentifier, [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"]);
 }
+

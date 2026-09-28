@@ -1,0 +1,5 @@
+AdShield-Rootless 1.1.0
+Combined tweak: GPL-3.0-or-later. Original MIT components retain LICENSE-MIT.
+Source: https://github.com/Rshad97/Rshad97/tree/main/AdShield-Rootless
+X adapter credit: Copyright (c) 2020 Hao Nguyen <hao.ict56@gmail.com>
+Changes: Copyright (c) 2026 Rashad. See THIRD_PARTY.md.

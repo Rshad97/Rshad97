@@ -1,14 +1,17 @@
 #import "ASViewController.h"
 #import "../Core/ASPreferences.h"
+#import "../Core/ASDomainRules.h"
+#import <rootless.h>
 
 static NSString * const ASAdGuardURL = @"https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt";
 static NSString * const ASHaGeZiURL = @"https://cdn.jsdelivr.net/gh/hagezi/dns-blocklists@latest/adblock/pro.mini.txt";
 static NSString * const ASStevenBlackURL = @"https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts";
-static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Support/AdShield/Filters/Runtime";
+#define ASFilterDirectory ROOT_PATH_NS(@"/Library/Application Support/AdShield/Filters/Runtime")
 
 @interface ASViewController ()
 @property (nonatomic, strong) UISwitch *masterSwitch;
 @property (nonatomic, strong) UISwitch *networkSwitch;
+@property (nonatomic, strong) UISwitch *xSwitch;
 @property (nonatomic, strong) UISwitch *adguardSwitch;
 @property (nonatomic, strong) UISwitch *hageziSwitch;
 @property (nonatomic, strong) UISwitch *stevenSwitch;
@@ -40,12 +43,12 @@ static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Suppor
     [icon.heightAnchor constraintEqualToConstant:120].active = YES;
 
     UILabel *subtitle = [UILabel new];
-    subtitle.text = @"AdShield-Rootless v1.0.0";
+    subtitle.text = @"AdShield-Rootless v1.1.0";
     subtitle.font = [UIFont systemFontOfSize:20 weight:UIFontWeightSemibold];
     subtitle.textAlignment = NSTextAlignmentCenter;
 
     UILabel *detail = [UILabel new];
-    detail.text = @"System-wide domain filtering prototype for third-party apps";
+    detail.text = @"Domain protection + experimental X promoted-post adapter";
     detail.textColor = UIColor.secondaryLabelColor;
     detail.textAlignment = NSTextAlignmentCenter;
     detail.numberOfLines = 0;
@@ -66,6 +69,16 @@ static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Suppor
     [self.networkSwitch addTarget:self action:@selector(networkChanged:) forControlEvents:UIControlEventValueChanged];
     [stack addArrangedSubview:[self rowWithTitle:@"Network Filtering" subtitle:@"Block matching NSURLSession requests" control:self.networkSwitch]];
 
+    self.xSwitch = [UISwitch new];
+    self.xSwitch.on = [ASPreferences boolForKey:@"xPromoted" defaultValue:YES];
+    [self.xSwitch addTarget:self action:@selector(xChanged:) forControlEvents:UIControlEventValueChanged];
+    [stack addArrangedSubview:[self rowWithTitle:@"X Promoted Posts" subtitle:@"Experimental • requires compatible app methods; reopen X after installation" control:self.xSwitch]];
+    UILabel *coverage = [UILabel new];
+    coverage.text = @"Snapchat: partial ad-domain coverage only. Story, Spotlight and chat ads are not guaranteed blocked. Other apps: domain filtering where NSURLSession is used. No blanket blocking of social-media domains.";
+    coverage.numberOfLines = 0;
+    coverage.font = [UIFont systemFontOfSize:13];
+    coverage.textColor = UIColor.secondaryLabelColor;
+    [stack addArrangedSubview:coverage];
     [stack addArrangedSubview:[self sectionLabel:@"Filter Sources"]];
 
     self.adguardSwitch = [UISwitch new];
@@ -101,7 +114,7 @@ static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Suppor
     [stack addArrangedSubview:self.updateButton];
 
     self.statusLabel = [UILabel new];
-    self.statusLabel.text = @"Built-in seed rules are active. Tap Update Filter Lists to download current upstream rules.";
+    self.statusLabel.text = [NSUserDefaults.standardUserDefaults stringForKey:@"lastFilterResult"] ?: @"Seed rules available. Missing enabled lists will download now.";
     self.statusLabel.textColor = UIColor.secondaryLabelColor;
     self.statusLabel.font = [UIFont systemFontOfSize:14];
     self.statusLabel.numberOfLines = 0;
@@ -118,7 +131,21 @@ static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Suppor
         [stack.bottomAnchor constraintEqualToAnchor:scroll.contentLayoutGuide.bottomAnchor constant:-20],
         [stack.widthAnchor constraintEqualToAnchor:scroll.frameLayoutGuide.widthAnchor constant:-40]
     ]];
+    // First launch and newly enabled missing subscriptions do not silently use seeds only.
+    [self downloadMissingFilters];
 }
+
+- (void)downloadMissingFilters {
+    NSArray *sources = @[@[@"useAdGuard", @"adguard_sdns.txt", @YES], @[@"useHaGeZi", @"hagezi_pro_mini.txt", @NO], @[@"useStevenBlack", @"stevenblack_hosts.txt", @NO]];
+    for (NSArray *source in sources) {
+        if ([ASPreferences boolForKey:source[0] defaultValue:[source[2] boolValue]] &&
+            ![NSFileManager.defaultManager fileExistsAtPath:[ASFilterDirectory stringByAppendingPathComponent:source[1]]]) {
+            [self updateFilters];
+            break;
+        }
+    }
+}
+- (void)xChanged:(UISwitch *)sender { [ASPreferences setBool:sender.isOn forKey:@"xPromoted"]; }
 
 - (UILabel *)sectionLabel:(NSString *)title {
     UILabel *label = [UILabel new];
@@ -175,18 +202,23 @@ static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Suppor
 
 - (void)adguardChanged:(UISwitch *)sender {
     [ASPreferences setBool:sender.isOn forKey:@"useAdGuard"];
+    if (sender.isOn) [self downloadMissingFilters];
 }
 
 - (void)hageziChanged:(UISwitch *)sender {
     [ASPreferences setBool:sender.isOn forKey:@"useHaGeZi"];
+    if (sender.isOn) [self downloadMissingFilters];
 }
 
 - (void)stevenChanged:(UISwitch *)sender {
     [ASPreferences setBool:sender.isOn forKey:@"useStevenBlack"];
+    if (sender.isOn) [self downloadMissingFilters];
 }
 
 - (void)updateFilters {
+    if (!self.updateButton.enabled) return;
     self.updateButton.enabled = NO;
+    self.adguardSwitch.enabled = self.hageziSwitch.enabled = self.stevenSwitch.enabled = NO;
     self.statusLabel.text = @"Downloading enabled filter lists…";
 
     NSError *dirError = nil;
@@ -197,6 +229,7 @@ static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Suppor
     if (dirError) {
         self.statusLabel.text = [NSString stringWithFormat:@"Could not create filter directory: %@", dirError.localizedDescription];
         self.updateButton.enabled = YES;
+        self.adguardSwitch.enabled = self.hageziSwitch.enabled = self.stevenSwitch.enabled = YES;
         return;
     }
 
@@ -214,6 +247,7 @@ static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Suppor
     if (!sources.count) {
         self.statusLabel.text = @"No remote filter source is enabled. Built-in seed rules remain available.";
         self.updateButton.enabled = YES;
+        self.adguardSwitch.enabled = self.hageziSwitch.enabled = self.stevenSwitch.enabled = YES;
         return;
     }
 
@@ -225,6 +259,7 @@ static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Suppor
     dispatch_group_t group = dispatch_group_create();
     __block NSUInteger successCount = 0;
     NSMutableArray<NSString *> *errors = [NSMutableArray array];
+    NSMutableArray<NSString *> *summaries = [NSMutableArray array];
 
     for (NSDictionary *source in sources) {
         NSURL *url = [NSURL URLWithString:source[@"url"]];
@@ -233,33 +268,28 @@ static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Suppor
         dispatch_group_enter(group);
 
         NSURLSessionDataTask *task = [session dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-            NSHTTPURLResponse *http = (NSHTTPURLResponse *)response;
-            BOOL validHTTP = !http || (http.statusCode >= 200 && http.statusCode < 300);
-
-            if (error || !validHTTP || data.length < 128) {
-                @synchronized (errors) {
-                    NSString *reason = error.localizedDescription ?: [NSString stringWithFormat:@"HTTP %ld", (long)http.statusCode];
-                    [errors addObject:[NSString stringWithFormat:@"%@: %@", label, reason]];
-                }
+            NSHTTPURLResponse *http = [response isKindOfClass:NSHTTPURLResponse.class] ? (NSHTTPURLResponse *)response : nil;
+            NSString *text = data.length <= 16 * 1024 * 1024 ? [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] : nil;
+            ASDomainRules *validation = [ASDomainRules new];
+            if (text) [validation addText:text];
+            BOOL valid = !error && http.statusCode == 200 && text.length &&
+                validation.acceptedCount >= 100 && [text rangeOfString:@"<html" options:NSCaseInsensitiveSearch].location == NSNotFound;
+            NSString *failure = nil;
+            if (!valid) {
+                failure = error.localizedDescription ?: [NSString stringWithFormat:@"invalid list (HTTP %ld, accepted %lu); previous file preserved", (long)http.statusCode, (unsigned long)validation.acceptedCount];
             } else {
+                NSError *writeError = nil;
                 NSString *path = [ASFilterDirectory stringByAppendingPathComponent:name];
-                NSString *tempPath = [path stringByAppendingString:@".tmp"];
-
-                if ([data writeToFile:tempPath atomically:YES]) {
-                    NSFileManager *fm = NSFileManager.defaultManager;
-                    [fm removeItemAtPath:path error:nil];
-                    NSError *moveError = nil;
-                    if ([fm moveItemAtPath:tempPath toPath:path error:&moveError]) {
-                        @synchronized (errors) { successCount++; }
-                    } else {
-                        @synchronized (errors) {
-                            [errors addObject:[NSString stringWithFormat:@"%@: %@", label, moveError.localizedDescription ?: @"move failed"]];
-                        }
-                    }
-                } else {
-                    @synchronized (errors) {
-                        [errors addObject:[NSString stringWithFormat:@"%@: write failed", label]];
-                    }
+                // Atomic replacement preserves the previous list on write failure.
+                if (![data writeToFile:path options:NSDataWritingAtomic error:&writeError]) {
+                    failure = writeError.localizedDescription ?: @"write failed; previous file preserved";
+                }
+            }
+            @synchronized (errors) {
+                if (failure) [errors addObject:[NSString stringWithFormat:@"%@: %@", label, failure]];
+                else {
+                    successCount++;
+                    [summaries addObject:[NSString stringWithFormat:@"%@: %lu accepted / %lu skipped", label, (unsigned long)validation.acceptedCount, (unsigned long)validation.skippedCount]];
                 }
             }
             dispatch_group_leave(group);
@@ -271,6 +301,7 @@ static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Suppor
         [session finishTasksAndInvalidate];
         [ASPreferences postReloadNotification];
         self.updateButton.enabled = YES;
+        self.adguardSwitch.enabled = self.hageziSwitch.enabled = self.stevenSwitch.enabled = YES;
 
         if (errors.count) {
             self.statusLabel.text = [NSString stringWithFormat:@"Updated %lu source(s). %@",
@@ -280,7 +311,10 @@ static NSString * const ASFilterDirectory = @"/var/jb/Library/Application Suppor
             self.statusLabel.text = [NSString stringWithFormat:@"Updated %lu source(s). Running apps received a rule-reload signal.",
                                      (unsigned long)successCount];
         }
+        self.statusLabel.text = [self.statusLabel.text stringByAppendingFormat:@"\n%@\nDownloaded: %@. Counts describe parsed files, not ads blocked.", [summaries componentsJoinedByString:@"\n"], [NSDate date]];
+        [NSUserDefaults.standardUserDefaults setObject:self.statusLabel.text forKey:@"lastFilterResult"];
     });
 }
 
 @end
+

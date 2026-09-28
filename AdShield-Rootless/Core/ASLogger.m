@@ -7,7 +7,8 @@
     if (![ASPreferences boolForKey:@"logBlocked" defaultValue:NO]) {
         return;
     }
-    NSLog(@"[AdShield] BLOCK bundle=%@ url=%@", bundleIdentifier ?: @"unknown", url.absoluteString ?: @"(null)");
+    NSLog(@"[AdShield] BLOCK bundle=%@ host=%@", bundleIdentifier ?: @"unknown", url.host ?: @"(null)");
 }
 
 @end
+
