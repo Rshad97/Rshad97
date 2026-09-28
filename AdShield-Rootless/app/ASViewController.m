@@ -269,7 +269,7 @@ static NSString * const ASStevenBlackURL = @"https://raw.githubusercontent.com/S
 
         NSURLSessionDataTask *task = [session dataTaskWithURL:url completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
             NSHTTPURLResponse *http = [response isKindOfClass:NSHTTPURLResponse.class] ? (NSHTTPURLResponse *)response : nil;
-            NSString *text = data.length <= 16 * 1024 * 1024 ? [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] : nil;
+            NSString *text = data.length > 0 && data.length <= 16 * 1024 * 1024 ? [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding] : nil;
             ASDomainRules *validation = [ASDomainRules new];
             if (text) [validation addText:text];
             BOOL valid = !error && http.statusCode == 200 && text.length &&
@@ -311,7 +311,7 @@ static NSString * const ASStevenBlackURL = @"https://raw.githubusercontent.com/S
             self.statusLabel.text = [NSString stringWithFormat:@"Updated %lu source(s). Running apps received a rule-reload signal.",
                                      (unsigned long)successCount];
         }
-        self.statusLabel.text = [self.statusLabel.text stringByAppendingFormat:@"\n%@\nDownloaded: %@. Counts describe parsed files, not ads blocked.", [summaries componentsJoinedByString:@"\n"], [NSDate date]];
+        self.statusLabel.text = [self.statusLabel.text stringByAppendingFormat:@"\n%@\nLast update attempt: %@. Counts describe parsed files, not ads blocked.", [summaries componentsJoinedByString:@"\n"], [NSDate date]];
         [NSUserDefaults.standardUserDefaults setObject:self.statusLabel.text forKey:@"lastFilterResult"];
     });
 }

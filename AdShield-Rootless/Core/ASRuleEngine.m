@@ -5,7 +5,7 @@
 
 @interface ASRuleEngine ()
 @property (nonatomic, strong) ASDomainRules *rules;
-@property (nonatomic) dispatch_queue_t loaderQueue;
+@property (nonatomic, strong) dispatch_queue_t loaderQueue;
 @end
 @implementation ASRuleEngine
 + (instancetype)sharedEngine {

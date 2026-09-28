@@ -1,6 +1,6 @@
 # Third-party filter sources
 
-AdShield-Rootless v1.0.0 does not copy third-party filtering engines and does not vendor the following remote lists in its DEB. AdShield implements its own conservative domain-rule parser and downloads enabled subscriptions directly from upstream when the user presses **Update Filter Lists**.
+AdShield-Rootless uses its own domain parser and does not vendor the following remote lists in its DEB. AdShield implements its own conservative domain-rule parser and downloads enabled subscriptions directly from upstream on first launch for missing enabled lists or when the user presses **Update Filter Lists**.
 
 ## AdGuard DNS Filter
 
@@ -10,7 +10,7 @@ AdShield-Rootless v1.0.0 does not copy third-party filtering engines and does no
 - AdShield default: enabled
 - Purpose: primary DNS/domain-level advertising and tracking filter.
 
-AdGuard describes this list as a DNS-oriented combination of several AdGuard, mobile-ad, EasyList and EasyPrivacy sources. AdShield supports only a safe domain-oriented subset of its syntax in v1.0.0.
+AdGuard describes this list as a DNS-oriented combination of several AdGuard, mobile-ad, EasyList and EasyPrivacy sources. AdShield supports only a safe domain-oriented subset of its syntax in v1.1.0.
 
 ## HaGeZi Multi PRO Mini
 
