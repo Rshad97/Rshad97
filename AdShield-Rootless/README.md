@@ -33,7 +33,7 @@ export THEOS=~/theos
 make clean package FINALPACKAGE=1
 ```
 
-The package targets rootless iOS 15+ and includes an arm64/arm64e tweak/preferences component plus an arm64 jailbreak app.
+The package targets rootless iOS 15+ and includes an arm64/arm64e tweak/preferences component plus an arm64 jailbreak app. The CI build uses Theos' patched iPhoneOS 16.5 SDK so the private Preferences framework can be linked correctly.
 
 ## Install
 
