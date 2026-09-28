@@ -1,53 +1,113 @@
 # AdShield-Rootless v1.0.0
 
-AdShield-Rootless is a prototype system-wide ad/tracker filter for rootless jailbreaks (iOS 15+), designed first for Dopamine/ElleKit.
+AdShield-Rootless is a modular ad/tracker filtering prototype for rootless jailbreaks on iOS 15+, designed for Dopamine/ElleKit.
 
-## What v1.0.0 contains
+## v1.0.0 prototype
 
-- Rootless Theos tweak that intercepts app `NSURLSessionTask` requests.
-- Small built-in seed domain list.
-- AdGuard DNS Filter compatibility for basic domain rules (`||domain^`, `@@||domain^`).
-- Hosts-file parsing for StevenBlack-style `0.0.0.0 domain` and `127.0.0.1 domain` entries.
-- Settings pane under iOS Settings via PreferenceLoader.
-- Standalone AdShield app with master switch and filter-list updater.
-- Sileo `finish:restart` maintainer action so installation/removal requests **Restart SpringBoard** after dpkg completes.
-- Rootless paths handled by Theos (`THEOS_PACKAGE_SCHEME=rootless`).
+- Rootless Theos tweak with arm64 + arm64e slices.
+- Intercepts third-party app `NSURLSessionTask` requests.
+- Apple/system processes, package managers, app extensions and AdShield itself are excluded from injection.
+- Independent parser for a conservative DNS/domain subset:
+  - `||example.com^`
+  - `@@||example.com^`
+  - `0.0.0.0 example.com`
+  - `127.0.0.1 example.com`
+  - plain domains
+- Unsupported AdGuard modifiers are skipped rather than guessed.
+- Hard safety allowlist for critical Apple/iCloud domains.
+- Built-in seed list.
+- Optional runtime filter subscriptions:
+  - AdGuard DNS Filter (enabled by default)
+  - HaGeZi Multi PRO Mini (optional)
+  - StevenBlack unified hosts (optional)
+- Standalone AdShield app for protection controls and list updates.
+- PreferenceLoader pane in iOS Settings.
+- Darwin notification reload so rule changes propagate to already-running apps.
+- Downloaded lists live in the shared rootless support path:
+  `/var/jb/Library/Application Support/AdShield/Filters/Runtime`.
+- Sileo-compatible `finish:restart` action so installation/removal presents **Restart SpringBoard**.
 
-## Filter sources
+## Why these sources?
 
-AdShield does **not** vendor third-party lists inside the source tree or DEB. The standalone app downloads enabled lists directly from their upstream endpoints:
+AdGuard DNS Filter is the default primary source because it is designed specifically for DNS-level ad blocking and already combines major AdGuard/mobile/tracking lists. HaGeZi Pro Mini is a size-optimized optional list intended for browser/mobile or limited-memory blockers. StevenBlack provides a mature hosts-format aggregate and is kept optional.
 
-- AdGuard DNS Filter: `https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt`
-- StevenBlack hosts: `https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts`
+AdShield does not vendor these lists into the source tree or DEB. The standalone app downloads enabled lists directly from their upstream endpoints.
 
-The current parser intentionally supports only the domain-oriented subset required by this prototype. Cosmetic filtering, scriptlets, regex rules, redirect rules, and app-specific first-party ad models are not implemented in v1.0.0.
+## Architecture
 
-## Important limitation
+```text
+Third-party app
+     │
+     ▼
+AdShield.dylib
+     │
+     ├── ASPreferences
+     ├── ASRuleEngine
+     │     ├── built-in seed rules
+     │     └── /var/jb/.../Filters/Runtime
+     │
+     └── NSURLSessionTask hook
+             │
+             ├── allow rule → pass through
+             └── block rule → cancel request
 
-YouTube, TikTok and X can deliver ads from first-party APIs/CDNs. Domain filtering alone cannot reliably remove every in-feed or playback ad without risking legitimate media. Dedicated app adapters are planned after the generic engine is stable.
+Settings.app ── PreferenceLoader ── AdShieldPrefs.bundle
+
+AdShield.app
+     ├── master/network switches
+     ├── filter-source switches
+     └── safe upstream list updater
+```
+
+## Important v1.0.0 limitation
+
+This first version is a domain/network layer, not a complete YouTube/TikTok/X-specific blocker.
+
+YouTube, TikTok and X can serve promotions and playback ads through first-party APIs/CDNs. Blocking those entire domains would also break legitimate video/timeline traffic. Dedicated app adapters are therefore planned as separate modules after the generic engine is stable.
+
+Planned adapters:
+
+- YouTube feed / Shorts / playback ad-state adapter
+- TikTok sponsored feed-object adapter
+- X promoted timeline/card adapter
+- Google Mobile Ads SDK
+- AppLovin
+- Unity Ads
+- ironSource / LevelPlay
+- Mintegral
 
 ## Build
 
-```bash
+Requires Theos and a usable iOS SDK.
+
+```sh
 export THEOS=~/theos
 make clean package FINALPACKAGE=1
 ```
 
-The package targets rootless iOS 15+ and includes an arm64/arm64e tweak/preferences component plus an arm64 jailbreak app. The CI build uses Theos' patched iPhoneOS 16.5 SDK so the private Preferences framework can be linked correctly.
+Package:
+- Identifier: `com.rshad.adshieldrootless`
+- Version: `1.0.0`
+- Architecture: `iphoneos-arm64`
+- Minimum iOS: 15.0
+- Injection: ElleKit
+- Settings: PreferenceLoader
 
-## Install
+GitHub Actions builds the DEB and validates package metadata, Settings resources, the standalone app, bundled seed rules and the `finish:restart` maintainer action.
 
-Open the generated `.deb` in Sileo. At the end of installation Sileo should present **Restart SpringBoard**. After respring:
+## After installation
 
-1. Open **Settings → AdShield-Rootless** or launch the **AdShield** app.
-2. Keep AdGuard enabled.
-3. Optionally enable StevenBlack.
-4. Tap **Update Filter Lists** in the app.
+1. In Sileo, use **Restart SpringBoard** when prompted.
+2. Open **Settings → AdShield-Rootless** or the **AdShield** app.
+3. Leave **AdGuard DNS Filter** enabled.
+4. Optionally enable **HaGeZi Pro Mini** or **StevenBlack Hosts**.
+5. Tap **Update Filter Lists**.
+6. Test normal browsing/apps first before enabling extra sources.
 
-## Safety/stability
+## Project icon
 
-The constructor explicitly excludes Apple/system processes and common jailbreak package-manager processes even though the Substrate filter is broad enough to reach UIKit apps. The AdShield app itself is excluded so filter updates cannot block their own download path.
+The visual identity is a black/deep-navy shield with electric-blue protection/ad-blocking elements. The build includes generated iPhone and PreferenceLoader icon sizes from the project asset generator.
 
-## License
+## Third-party licenses
 
-AdShield source code is MIT licensed. Third-party filter lists remain under their respective upstream licenses and are downloaded directly from upstream at the user's request.
+See `THIRD_PARTY.md`. AdShield's own source is MIT licensed. Third-party lists remain governed by their upstream licenses and are downloaded from upstream rather than redistributed inside this package.
