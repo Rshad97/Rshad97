@@ -54,20 +54,22 @@
     NSString *builtin = ROOT_PATH_NS(@"/Library/Application Support/AdShield/Filters/builtin.txt");
     [self parseFileAtPath:builtin blocks:blocks allows:allows];
 
+    NSString *runtimeDirectory = ROOT_PATH_NS(@"/Library/Application Support/AdShield/Filters/Runtime");
+
     if ([ASPreferences boolForKey:@"useAdGuard" defaultValue:YES]) {
-        [self parseFileAtPath:@"/var/mobile/Library/Application Support/AdShield/Filters/adguard_sdns.txt"
+        [self parseFileAtPath:[runtimeDirectory stringByAppendingPathComponent:@"adguard_sdns.txt"]
                        blocks:blocks
                        allows:allows];
     }
 
     if ([ASPreferences boolForKey:@"useHaGeZi" defaultValue:NO]) {
-        [self parseFileAtPath:@"/var/mobile/Library/Application Support/AdShield/Filters/hagezi_pro_mini.txt"
+        [self parseFileAtPath:[runtimeDirectory stringByAppendingPathComponent:@"hagezi_pro_mini.txt"]
                        blocks:blocks
                        allows:allows];
     }
 
     if ([ASPreferences boolForKey:@"useStevenBlack" defaultValue:NO]) {
-        [self parseFileAtPath:@"/var/mobile/Library/Application Support/AdShield/Filters/stevenblack_hosts.txt"
+        [self parseFileAtPath:[runtimeDirectory stringByAppendingPathComponent:@"stevenblack_hosts.txt"]
                        blocks:blocks
                        allows:allows];
     }
