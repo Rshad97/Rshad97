@@ -14,7 +14,7 @@ mkdir -p "$AS_TEST_DIR/ASXTests.app"
 SDK="$(xcrun --sdk iphonesimulator --show-sdk-path)"
 xcrun --sdk iphonesimulator clang -arch "$(uname -m)" -isysroot "$SDK" \
   -mios-simulator-version-min=15.0 -fobjc-arc -Wall -Wextra -Werror \
-  -framework Foundation -framework UIKit Core/ASXCellGuard.m tests/x-ui-tests.m \
+  -framework Foundation -framework UIKit -framework CoreGraphics Core/ASXCellGuard.m tests/x-ui-tests.m \
   -o "$AS_TEST_DIR/ASXTests.app/ASXTests"
 python3 - "$AS_TEST_DIR" <<'PY'
 import json, plistlib, subprocess, sys
