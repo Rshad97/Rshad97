@@ -1,6 +1,11 @@
 #!/bin/sh
 set +e
 
+RUNTIME_FILTERS="/var/jb/Library/Application Support/AdShield/Filters/Runtime"
+mkdir -p "$RUNTIME_FILTERS"
+chown mobile:mobile "$RUNTIME_FILTERS" >/dev/null 2>&1 || true
+chmod 0755 "$RUNTIME_FILTERS" >/dev/null 2>&1 || true
+
 if command -v uicache >/dev/null 2>&1; then
     uicache -a >/dev/null 2>&1
 elif [ -x /var/jb/usr/bin/uicache ]; then
