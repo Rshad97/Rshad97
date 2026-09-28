@@ -60,6 +60,12 @@
                        allows:allows];
     }
 
+    if ([ASPreferences boolForKey:@"useHaGeZi" defaultValue:NO]) {
+        [self parseFileAtPath:@"/var/mobile/Library/Application Support/AdShield/Filters/hagezi_pro_mini.txt"
+                       blocks:blocks
+                       allows:allows];
+    }
+
     if ([ASPreferences boolForKey:@"useStevenBlack" defaultValue:NO]) {
         [self parseFileAtPath:@"/var/mobile/Library/Application Support/AdShield/Filters/stevenblack_hosts.txt"
                        blocks:blocks
@@ -75,56 +81,85 @@
     });
 }
 
+- (BOOL)modifierStringIsSafeForPrototype:(NSString *)modifierString {
+    if (!modifierString.length) return YES;
+
+    for (NSString *rawModifier in [modifierString componentsSeparatedByString:@","]) {
+        NSString *modifier = [rawModifier stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceCharacterSet].lowercaseString;
+        if (!modifier.length) continue;
+
+        // "important" changes precedence, not hostname matching, so it is safe
+        // for this first-stage domain engine. Other modifiers are skipped until
+        // their semantics are implemented correctly.
+        if ([modifier isEqualToString:@"important"]) continue;
+        return NO;
+    }
+    return YES;
+}
+
 - (void)parseFileAtPath:(NSString *)path blocks:(NSMutableSet<NSString *> *)blocks allows:(NSMutableSet<NSString *> *)allows {
     NSString *content = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
     if (!content.length) return;
 
     [content enumerateLinesUsingBlock:^(NSString *line, BOOL *stop) {
         (void)stop;
-        NSString *trimmed = [line stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
-        if (!trimmed.length || [trimmed hasPrefix:@"!"] || [trimmed hasPrefix:@"#"] || [trimmed hasPrefix:@"["]) {
-            return;
-        }
 
-        BOOL isAllow = [trimmed hasPrefix:@"@@"];
-        if (isAllow) trimmed = [trimmed substringFromIndex:2];
-
-        NSRange optionsRange = [trimmed rangeOfString:@"$"];
-        if (optionsRange.location != NSNotFound) {
-            trimmed = [trimmed substringToIndex:optionsRange.location];
-        }
-
-        NSString *domain = nil;
-
-        if ([trimmed hasPrefix:@"||"]) {
-            NSString *candidate = [trimmed substringFromIndex:2];
-            NSRange end = [candidate rangeOfCharacterFromSet:[NSCharacterSet characterSetWithCharactersInString:@"^/|"]];
-            domain = end.location == NSNotFound ? candidate : [candidate substringToIndex:end.location];
-        } else if ([trimmed hasPrefix:@"0.0.0.0 "] || [trimmed hasPrefix:@"127.0.0.1 "]) {
-            NSArray<NSString *> *parts = [trimmed componentsSeparatedByCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
-            for (NSString *part in parts.reverseObjectEnumerator) {
-                if (part.length && ![part isEqualToString:@"0.0.0.0"] && ![part isEqualToString:@"127.0.0.1"]) {
-                    domain = part;
-                    break;
-                }
+        @autoreleasepool {
+            NSString *trimmed = [line stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+            if (!trimmed.length || [trimmed hasPrefix:@"!"] || [trimmed hasPrefix:@"#"] || [trimmed hasPrefix:@"["]) {
+                return;
             }
-        } else if ([self looksLikePlainDomain:trimmed]) {
-            domain = trimmed;
-        }
 
-        domain = [self normalizeDomain:domain];
-        if (!domain.length) return;
+            BOOL isAllow = [trimmed hasPrefix:@"@@"];
+            if (isAllow) trimmed = [trimmed substringFromIndex:2];
 
-        if (isAllow) {
-            [allows addObject:domain];
-        } else {
-            [blocks addObject:domain];
+            NSRange optionsRange = [trimmed rangeOfString:@"$"];
+            if (optionsRange.location != NSNotFound) {
+                NSString *modifiers = [trimmed substringFromIndex:optionsRange.location + 1];
+                if (![self modifierStringIsSafeForPrototype:modifiers]) {
+                    return;
+                }
+                trimmed = [trimmed substringToIndex:optionsRange.location];
+            }
+
+            NSString *domain = nil;
+
+            if ([trimmed hasPrefix:@"||"]) {
+                NSString *candidate = [trimmed substringFromIndex:2];
+                NSRange end = [candidate rangeOfCharacterFromSet:[NSCharacterSet characterSetWithCharactersInString:@"^/|"]];
+                domain = end.location == NSNotFound ? candidate : [candidate substringToIndex:end.location];
+            } else if ([trimmed hasPrefix:@"0.0.0.0 "] || [trimmed hasPrefix:@"127.0.0.1 "]) {
+                NSArray<NSString *> *parts = [trimmed componentsSeparatedByCharactersInSet:NSCharacterSet.whitespaceCharacterSet];
+                for (NSString *part in parts.reverseObjectEnumerator) {
+                    if (part.length &&
+                        ![part isEqualToString:@"0.0.0.0"] &&
+                        ![part isEqualToString:@"127.0.0.1"]) {
+                        domain = part;
+                        break;
+                    }
+                }
+            } else if ([self looksLikePlainDomain:trimmed]) {
+                domain = trimmed;
+            }
+
+            domain = [self normalizeDomain:domain];
+            if (!domain.length) return;
+
+            if (isAllow) {
+                [allows addObject:domain];
+            } else {
+                [blocks addObject:domain];
+            }
         }
     }];
 }
 
 - (BOOL)looksLikePlainDomain:(NSString *)value {
-    if ([value containsString:@"/"] || [value containsString:@"*"] || [value containsString:@"|"] || [value containsString:@"^"]) {
+    if ([value containsString:@"/"] ||
+        [value containsString:@"*"] ||
+        [value containsString:@"|"] ||
+        [value containsString:@"^"] ||
+        [value containsString:@":"]) {
         return NO;
     }
     return [value containsString:@"."] && ![value containsString:@" "];
@@ -132,11 +167,23 @@
 
 - (NSString *)normalizeDomain:(NSString *)domain {
     if (!domain.length) return nil;
-    NSString *normalized = domain.lowercaseString;
+
+    NSString *normalized = [domain.lowercaseString stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    while ([normalized hasPrefix:@"."]) {
+        normalized = [normalized substringFromIndex:1];
+    }
     while ([normalized hasSuffix:@"."]) {
         normalized = [normalized substringToIndex:normalized.length - 1];
     }
-    if ([normalized containsString:@" "] || ![normalized containsString:@"."]) {
+
+    if (!normalized.length ||
+        ![normalized containsString:@"."] ||
+        [normalized containsString:@" "] ||
+        [normalized containsString:@"*"] ||
+        [normalized containsString:@"/"] ||
+        [normalized containsString:@"|"] ||
+        [normalized containsString:@"^"] ||
+        [normalized containsString:@":"]) {
         return nil;
     }
     return normalized;
@@ -153,6 +200,20 @@
     return NO;
 }
 
+- (BOOL)isSafetyAllowlistedHost:(NSString *)host {
+    static NSSet<NSString *> *criticalDomains;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        criticalDomains = [NSSet setWithArray:@[
+            @"apple.com",
+            @"icloud.com",
+            @"mzstatic.com",
+            @"itunes.apple.com"
+        ]];
+    });
+    return [self set:criticalDomains matchesHost:host];
+}
+
 - (BOOL)shouldBlockURL:(NSURL *)url {
     if (![ASPreferences boolForKey:@"enabled" defaultValue:YES] ||
         ![ASPreferences boolForKey:@"networkFiltering" defaultValue:YES]) {
@@ -160,7 +221,7 @@
     }
 
     NSString *host = url.host.lowercaseString;
-    if (!host.length) return NO;
+    if (!host.length || [self isSafetyAllowlistedHost:host]) return NO;
 
     [self ensureLoaded];
 
