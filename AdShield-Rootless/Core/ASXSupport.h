@@ -1,3 +1,3 @@
 #import <Foundation/Foundation.h>
-BOOL ASXIsPromoted(id item);
-BOOL ASXMethodMatches(Class cls, SEL selector, const char *returnType, NSUInteger argumentCount);
+FOUNDATION_EXPORT BOOL ASXIsPromoted(id item);
+FOUNDATION_EXPORT BOOL ASXMethodMatches(Class cls, SEL selector, const char *returnType, NSUInteger argumentCount);
