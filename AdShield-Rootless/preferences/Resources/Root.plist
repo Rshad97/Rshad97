@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+<key>items</key>
+<array>
+    <dict>
+        <key>cell</key><string>PSGroupCell</string>
+        <key>label</key><string>AdShield-Rootless v1.0.0</string>
+        <key>footerText</key><string>Prototype system-wide network filter for rootless jailbreaks. Third-party lists are downloaded only when you request an update in the AdShield app.</string>
+    </dict>
+    <dict>
+        <key>cell</key><string>PSSwitchCell</string>
+        <key>label</key><string>Enable AdShield</string>
+        <key>key</key><string>enabled</string>
+        <key>default</key><true/>
+        <key>get</key><string>readPreferenceValue:</string>
+        <key>set</key><string>setPreferenceValue:specifier:</string>
+    </dict>
+    <dict>
+        <key>cell</key><string>PSSwitchCell</string>
+        <key>label</key><string>Network Filtering</string>
+        <key>key</key><string>networkFiltering</string>
+        <key>default</key><true/>
+        <key>get</key><string>readPreferenceValue:</string>
+        <key>set</key><string>setPreferenceValue:specifier:</string>
+    </dict>
+    <dict>
+        <key>cell</key><string>PSGroupCell</string>
+        <key>label</key><string>Filter Sources</string>
+    </dict>
+    <dict>
+        <key>cell</key><string>PSSwitchCell</string>
+        <key>label</key><string>AdGuard DNS Filter</string>
+        <key>key</key><string>useAdGuard</string>
+        <key>default</key><true/>
+        <key>get</key><string>readPreferenceValue:</string>
+        <key>set</key><string>setPreferenceValue:specifier:</string>
+    </dict>
+    <dict>
+        <key>cell</key><string>PSSwitchCell</string>
+        <key>label</key><string>StevenBlack Hosts</string>
+        <key>key</key><string>useStevenBlack</string>
+        <key>default</key><false/>
+        <key>get</key><string>readPreferenceValue:</string>
+        <key>set</key><string>setPreferenceValue:specifier:</string>
+    </dict>
+    <dict>
+        <key>cell</key><string>PSGroupCell</string>
+        <key>label</key><string>Advanced</string>
+    </dict>
+    <dict>
+        <key>cell</key><string>PSSwitchCell</string>
+        <key>label</key><string>Log Blocked Requests</string>
+        <key>key</key><string>logBlocked</string>
+        <key>default</key><false/>
+        <key>get</key><string>readPreferenceValue:</string>
+        <key>set</key><string>setPreferenceValue:specifier:</string>
+    </dict>
+    <dict>
+        <key>cell</key><string>PSButtonCell</string>
+        <key>label</key><string>Open AdShield App</string>
+        <key>action</key><string>openApp</string>
+    </dict>
+    <dict>
+        <key>cell</key><string>PSButtonCell</string>
+        <key>label</key><string>Restart SpringBoard</string>
+        <key>action</key><string>respring</string>
+    </dict>
+</array>
+</dict>
+</plist>

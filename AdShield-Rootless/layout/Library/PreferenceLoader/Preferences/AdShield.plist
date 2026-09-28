@@ -1,0 +1,8 @@
+{
+    entry = {
+        bundle = AdShieldPrefs;
+        cell = PSLinkCell;
+        icon = AdShieldPrefs.png;
+        label = "AdShield-Rootless";
+    };
+}

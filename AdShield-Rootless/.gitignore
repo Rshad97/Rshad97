@@ -1,0 +1,7 @@
+.theos/
+packages/
+*.deb
+.DS_Store
+app/Resources/*.png
+preferences/Resources/*.png
+layout/Library/PreferenceLoader/Preferences/*.png

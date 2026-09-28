@@ -1,0 +1,22 @@
+# AdShield-Rootless built-in seed rules.
+# Deliberately small. Large third-party lists are downloaded from their original sources by the app.
+||doubleclick.net^
+||googlesyndication.com^
+||googleadservices.com^
+||adservice.google.com^
+||adsrvr.org^
+||app-measurement.com^
+||applovin.com^
+||applvn.com^
+||unityads.unity3d.com^
+||ads.unity3d.com^
+||ironsrc.com^
+||isprog.com^
+||supersonicads.com^
+||mintegral.com^
+||vungle.com^
+||inmobi.com^
+||chartboost.com^
+||tapjoy.com^
+||adcolony.com^
+||mopub.com^

@@ -1,0 +1,33 @@
+name: Build AdShield-Rootless
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'AdShield-Rootless/**'
+      - '.github/workflows/adshield-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Theos
+        run: |
+          brew install make ldid xz
+          git clone --recursive https://github.com/theos/theos.git "$HOME/theos"
+
+      - name: Build rootless package
+        working-directory: AdShield-Rootless
+        run: |
+          export THEOS="$HOME/theos"
+          make clean package FINALPACKAGE=1
+
+      - name: Upload DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: AdShield-Rootless-v1.0.0
+          path: AdShield-Rootless/packages/*.deb

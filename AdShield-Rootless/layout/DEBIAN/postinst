@@ -1,0 +1,13 @@
+#!/bin/sh
+set +e
+
+# Refresh jailbreak app/icon registration after installing the standalone app.
+if command -v uicache >/dev/null 2>&1; then
+    uicache -a >/dev/null 2>&1
+elif [ -x /var/jb/usr/bin/uicache ]; then
+    /var/jb/usr/bin/uicache -a >/dev/null 2>&1
+fi
+
+# Sileo-compatible finish action: present "Restart SpringBoard" after dpkg completes.
+echo "finish:restart"
+exit 0

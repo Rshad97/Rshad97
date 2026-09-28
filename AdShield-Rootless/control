@@ -1,0 +1,12 @@
+Package: com.rshad.adshieldrootless
+Name: AdShield-Rootless
+Version: 1.0.0
+Architecture: iphoneos-arm64
+Description: Rootless system-wide ad and tracker filtering prototype for iOS 15+.
+Maintainer: Rashad
+Author: Rashad
+Section: Tweaks
+Depends: firmware (>= 15.0), ellekit, preferenceloader
+Conflicts: com.rshad.adshield
+Replaces: com.rshad.adshield
+Priority: optional
