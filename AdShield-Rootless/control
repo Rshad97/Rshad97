@@ -10,3 +10,4 @@ Depends: firmware (>= 15.0), ellekit, preferenceloader
 Conflicts: com.rshad.adshield
 Replaces: com.rshad.adshield
 Priority: optional
+Homepage: https://github.com/Rshad97/Rshad97/tree/main/AdShield-Rootless
