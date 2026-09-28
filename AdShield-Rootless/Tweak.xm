@@ -49,21 +49,18 @@ static BOOL ASShouldActivateForCurrentProcess(void) {
 %end
 
 %ctor {
-    @autoreleasepool {
-        if (!ASShouldActivateForCurrentProcess()) return;
-
-        static int reloadToken = 0;
-        notify_register_dispatch(ASReloadNotification, &reloadToken,
-                                 dispatch_get_global_queue(QOS_CLASS_UTILITY, 0),
-                                 ^(int token) {
-            (void)token;
-            [[ASRuleEngine sharedEngine] reload];
-        });
-
-        // Prime the rule engine in the background so the first network request
-        // never pays the cost of parsing large filter lists.
-        [[ASRuleEngine sharedEngine] reload];
-
-        %init;
+    if (!ASShouldActivateForCurrentProcess()) {
+        return;
     }
+
+    static int reloadToken = 0;
+    notify_register_dispatch(ASReloadNotification, &reloadToken,
+                             dispatch_get_global_queue(QOS_CLASS_UTILITY, 0),
+                             ^(int token) {
+        (void)token;
+        [[ASRuleEngine sharedEngine] reload];
+    });
+
+    [[ASRuleEngine sharedEngine] reload];
+    %init;
 }
