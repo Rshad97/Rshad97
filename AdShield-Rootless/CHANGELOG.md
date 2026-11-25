@@ -1,3 +1,7 @@
+# 1.2.0
+
+- Added an offline hostname checker to the companion app. Results use the installed network rules and identify unavailable filter files.
+
 # 1.1.1
 
 - Remove zero-height ad-row override. Keep X's native layout measurements to prevent inconsistent row geometry; an empty ad slot may remain.

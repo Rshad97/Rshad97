@@ -43,6 +43,10 @@ int main(int argc, const char *argv[]) {
             NSLog(@"UPSTREAM %@ accepted=%lu skipped=%lu", @(argv[1]), (unsigned long)download.acceptedCount, (unsigned long)download.skippedCount);
             return 0;
         }
+        Check([[ASDomainRules normalizedHost:@"Ads.Example."] isEqualToString:@"ads.example"], @"normalize hostname input");
+        for (NSString *input in @[@"", @"example.com/path", @"https://ads.example", @"a.b:80", @"127.0.0.1"]) {
+            Check([ASDomainRules normalizedHost:input] == nil, @"reject non-hostname input");
+        }
         ASDomainRules *rules = [ASDomainRules new];
         [rules addText:@"! comment\n[Adblock Plus 2.0]\n||ads.example^\n@@||ok.ads.example^\n||priority.example^$important\n@@||priority.example^\n@@||exception.priority.example^$important\n0.0.0.0\tfirst.example second.example # note\n:: ipv6.example\nplain.example\n||path.example/ads/\n||path2.example^/ads\n||wild*.example^\n||condition.example^$third-party\n||bad.example^$important,third-party\n||unterminated.example\n||exact.example|\n||other.example^$badfilter\nexample.com##.ad\n0.0.0.0 local.example\n1.2.3.4 redirected.example\n||-bad.example^\n||a..example^\n"]; 
         Check([rules blocksHost:@"ADS.EXAMPLE."], @"case and trailing dot");
