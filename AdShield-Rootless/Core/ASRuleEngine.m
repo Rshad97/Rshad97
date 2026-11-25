@@ -24,6 +24,9 @@
 - (NSUInteger)blockedDomainCount { @synchronized(self) { return self.rules.blockCount; } }
 - (NSUInteger)allowedDomainCount { @synchronized(self) { return self.rules.allowCount; } }
 - (void)reload {
+    [self reloadWithCompletion:nil];
+}
+- (void)reloadWithCompletion:(void (^)(NSArray<NSString *> *))completion {
     dispatch_async(self.loaderQueue, ^{
         ASDomainRules *next = [ASDomainRules new];
         NSString *base = ROOT_PATH_NS(@"/Library/Application Support/AdShield/Filters");
@@ -33,19 +36,27 @@
         for (NSArray *source in sources) {
             if ([(prefs[source[0]] ?: source[2]) boolValue]) [paths addObject:[[base stringByAppendingPathComponent:@"Runtime"] stringByAppendingPathComponent:source[1]]];
         }
+        NSMutableArray<NSString *> *unavailable = [NSMutableArray array];
         for (NSString *path in paths) {
             NSError *error = nil;
             NSString *text = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&error];
             if (text) [next addText:text];
-            else NSLog(@"[AdShield] FILTER_UNAVAILABLE %@ code=%ld", path.lastPathComponent, (long)error.code);
+            else {
+                [unavailable addObject:path.lastPathComponent];
+                NSLog(@"[AdShield] FILTER_UNAVAILABLE %@ code=%ld", path.lastPathComponent, (long)error.code);
+            }
         }
         @synchronized(self) { self.rules = next; }
         NSLog(@"[AdShield] FILTERS_LOADED accepted=%lu skipped=%lu", (unsigned long)next.acceptedCount, (unsigned long)next.skippedCount);
+        if (completion) dispatch_async(dispatch_get_main_queue(), ^{ completion(unavailable); });
     });
 }
 - (BOOL)shouldBlockURL:(NSURL *)url {
+    return url.host.length && [self shouldBlockHost:url.host];
+}
+- (BOOL)shouldBlockHost:(NSString *)hostname {
     if (![ASPreferences boolForKey:@"enabled" defaultValue:YES] || ![ASPreferences boolForKey:@"networkFiltering" defaultValue:YES]) return NO;
-    NSString *host = url.host.lowercaseString;
+    NSString *host = hostname.lowercaseString;
     if ([host hasSuffix:@"."]) host = [host substringToIndex:host.length - 1];
     for (NSString *safe in @[@"apple.com", @"icloud.com", @"mzstatic.com"]) {
         if ([host isEqualToString:safe] || [host hasSuffix:[@"." stringByAppendingString:safe]]) return NO;

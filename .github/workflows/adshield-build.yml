@@ -6,10 +6,15 @@ on:
     paths:
       - 'AdShield-Rootless/**'
       - '.github/workflows/adshield-build.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'AdShield-Rootless/**'
+      - '.github/workflows/adshield-build.yml'
   workflow_dispatch:
 
 concurrency:
-  group: adshield-rootless-build
+  group: adshield-rootless-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -46,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(awk '/^Package:/{print $2}' control)" = "com.rshad.adshieldrootless"
-          test "$(awk '/^Version:/{print $2}' control)" = "1.1.1"
+          test "$(awk '/^Version:/{print $2}' control)" = "1.2.0"
           test "$(awk '/^Architecture:/{print $2}' control)" = "iphoneos-arm64"
           plutil -lint app/Resources/Info.plist
           plutil -lint preferences/Resources/Info.plist
@@ -86,7 +91,7 @@ jobs:
       - name: Upload DEB
         uses: actions/upload-artifact@v4
         with:
-          name: AdShield-Rootless-v1.1.1
+          name: AdShield-Rootless-v1.2.0
           path: AdShield-Rootless/packages/*.deb
           if-no-files-found: error
 

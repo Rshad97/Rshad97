@@ -1,6 +1,7 @@
 #import "ASViewController.h"
 #import "../Core/ASPreferences.h"
 #import "../Core/ASDomainRules.h"
+#import "../Core/ASRuleEngine.h"
 #import <rootless.h>
 
 static NSString * const ASAdGuardURL = @"https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt";
@@ -17,6 +18,8 @@ static NSString * const ASStevenBlackURL = @"https://raw.githubusercontent.com/S
 @property (nonatomic, strong) UISwitch *stevenSwitch;
 @property (nonatomic, strong) UILabel *statusLabel;
 @property (nonatomic, strong) UIButton *updateButton;
+@property (nonatomic, strong) UIButton *checkButton;
+@property (nonatomic, strong) UILabel *checkResult;
 @end
 
 @implementation ASViewController
@@ -43,7 +46,7 @@ static NSString * const ASStevenBlackURL = @"https://raw.githubusercontent.com/S
     [icon.heightAnchor constraintEqualToConstant:120].active = YES;
 
     UILabel *subtitle = [UILabel new];
-    subtitle.text = @"AdShield-Rootless v1.1.1";
+    subtitle.text = @"AdShield-Rootless v1.2.0";
     subtitle.font = [UIFont systemFontOfSize:20 weight:UIFontWeightSemibold];
     subtitle.textAlignment = NSTextAlignmentCenter;
 
@@ -120,6 +123,16 @@ static NSString * const ASStevenBlackURL = @"https://raw.githubusercontent.com/S
     self.statusLabel.numberOfLines = 0;
     [stack addArrangedSubview:self.statusLabel];
 
+    self.checkButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    [self.checkButton setTitle:@"Check a Hostname" forState:UIControlStateNormal];
+    [self.checkButton addTarget:self action:@selector(promptForHostname) forControlEvents:UIControlEventTouchUpInside];
+    [stack addArrangedSubview:self.checkButton];
+    self.checkResult = [UILabel new];
+    self.checkResult.numberOfLines = 0;
+    self.checkResult.font = [UIFont preferredFontForTextStyle:UIFontTextStyleFootnote];
+    self.checkResult.textColor = UIColor.secondaryLabelColor;
+    [stack addArrangedSubview:self.checkResult];
+
     [NSLayoutConstraint activateConstraints:@[
         [scroll.leadingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.leadingAnchor],
         [scroll.trailingAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.trailingAnchor],
@@ -133,6 +146,42 @@ static NSString * const ASStevenBlackURL = @"https://raw.githubusercontent.com/S
     ]];
     // First launch and newly enabled missing subscriptions do not silently use seeds only.
     [self downloadMissingFilters];
+}
+
+- (void)promptForHostname {
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Check a Hostname"
+        message:@"Enter a domain to test against your installed network filters. The check runs offline."
+        preferredStyle:UIAlertControllerStyleAlert];
+    [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
+        field.placeholder = @"ads.example.com";
+        field.keyboardType = UIKeyboardTypeURL;
+        field.autocorrectionType = UITextAutocorrectionTypeNo;
+        field.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    }];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
+    [alert addAction:[UIAlertAction actionWithTitle:@"Check" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        NSString *input = [alert.textFields.firstObject.text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+        NSString *host = [ASDomainRules normalizedHost:input];
+        if (!host) {
+            self.checkResult.text = @"Enter a hostname such as ads.example.com. Omit the scheme, path, and port.";
+            return;
+        }
+        self.checkButton.enabled = NO;
+        self.checkResult.text = @"Checking installed filters…";
+        ASRuleEngine *engine = [ASRuleEngine sharedEngine];
+        [engine reloadWithCompletion:^(NSArray<NSString *> *unavailable) {
+            BOOL blocked = [engine shouldBlockHost:host];
+            NSString *result = [NSString stringWithFormat:@"%@ would be %@ with your current network settings.",
+                                host, blocked ? @"blocked" : @"allowed"];
+            if (unavailable.count) {
+                result = [result stringByAppendingFormat:@"\nUnavailable filter files: %@", [unavailable componentsJoinedByString:@", "]];
+            }
+            self.checkResult.text = result;
+            self.checkButton.enabled = YES;
+            UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, result);
+        }];
+    }]];
+    [self presentViewController:alert animated:YES completion:nil];
 }
 
 - (void)downloadMissingFilters {

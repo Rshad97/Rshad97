@@ -1,4 +1,4 @@
-# AdShield-Rootless v1.1.1
+# AdShield-Rootless v1.2.0
 
 Rootless iOS 15+ tweak for Dopamine/ElleKit. This update improves filtering correctness and adds an **experimental X promoted-post adapter**. Version 1.1.1 removes zero-height collapsing to address ad reappearance and overlapping rows. It does not promise complete Snapchat, YouTube or TikTok ad removal.
 
@@ -11,6 +11,8 @@ Rootless iOS 15+ tweak for Dopamine/ElleKit. This update improves filtering corr
 | Games / other apps | AdGuard DNS, optional HaGeZi Pro Mini / StevenBlack | Only covered NSURLSession paths; custom networking, WebKit subprocesses and shared first-party ads may bypass it. |
 
 The adapter checks actual installed classes and method signatures rather than assuming an App Store version is installed. Startup logs include the local app version. App Store listings cannot reveal the version on a particular phone.
+
+Tap **Check a Hostname** in the AdShield app to test a domain against your current network settings, built-in seed, and locally available subscriptions. The checker uses the same decision as the network filter and reports any unavailable files. It does not contact the hostname.
 
 ## Changes
 
@@ -26,7 +28,7 @@ The adapter checks actual installed classes and method signatures rather than as
 
 ## Install / verify
 
-1. Upgrade `com.rshad.adshieldrootless` to 1.1.1 in Sileo and select Restart SpringBoard.
+1. Upgrade `com.rshad.adshieldrootless` to 1.2.0 in Sileo and select Restart SpringBoard.
 2. Open AdShield. Keep AdGuard DNS enabled; missing lists download automatically. For existing lists, tap Update Filter Lists.
 3. Close and reopen X and Snapchat. X Promoted Posts is enabled by default and has a separate switch in both the app and Settings.
 4. Optionally enable Log Blocked Requests in Settings. Check device console output:

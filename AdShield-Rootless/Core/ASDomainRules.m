@@ -16,7 +16,7 @@
     }
     return self;
 }
-+ (NSString *)domain:(NSString *)value {
++ (NSString *)normalizedHost:(NSString *)value {
     NSString *s = value.lowercaseString;
     if ([s hasSuffix:@"."]) s = [s substringToIndex:s.length - 1];
     if (!s.length || s.length > 253 || ![s containsString:@"."]) return nil;
@@ -62,7 +62,7 @@
                     BOOL added = NO;
                     for (NSUInteger i = 1; i < parts.count; i++) {
                         if (![parts[i] length]) continue;
-                        NSString *d = [ASDomainRules domain:parts[i]];
+                        NSString *d = [ASDomainRules normalizedHost:parts[i]];
                         if (d) { [self.buckets[4] addObject:d]; self.acceptedCount++; added = YES; }
                         else self.skippedCount++;
                     }
@@ -71,7 +71,7 @@
                 }
                 if (allow || important) { self.skippedCount++; return; }
             }
-            NSString *domain = [ASDomainRules domain:s];
+            NSString *domain = [ASDomainRules normalizedHost:s];
             if (!domain) { self.skippedCount++; return; }
             [self.buckets[bucket] addObject:domain];
             self.acceptedCount++;
@@ -91,7 +91,7 @@
 - (NSUInteger)blockCount { return self.buckets[0].count + self.buckets[2].count + self.buckets[4].count; }
 - (NSUInteger)allowCount { return self.buckets[1].count + self.buckets[3].count; }
 - (BOOL)blocksHost:(NSString *)host {
-    NSString *s = [ASDomainRules domain:host];
+    NSString *s = [ASDomainRules normalizedHost:host];
     if (!s) return NO;
     if ([self bucket:3 matches:s]) return NO;
     if ([self bucket:2 matches:s]) return YES;
