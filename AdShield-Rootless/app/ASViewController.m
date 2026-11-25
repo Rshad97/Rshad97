@@ -160,6 +160,7 @@ static NSString * const ASStevenBlackURL = @"https://raw.githubusercontent.com/S
     }];
     [alert addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:nil]];
     [alert addAction:[UIAlertAction actionWithTitle:@"Check" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+        (void)action;
         NSString *input = [alert.textFields.firstObject.text stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
         NSString *host = [ASDomainRules normalizedHost:input];
         if (!host) {
